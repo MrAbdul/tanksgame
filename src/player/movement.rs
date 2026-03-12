@@ -7,6 +7,7 @@ use bevy::prelude::{
 };
 use bevy::window::PrimaryWindow;
 use std::f32::consts::FRAC_PI_2;
+use bevy_rapier2d::prelude::Velocity;
 
 pub(crate) fn handle_rotations_by_mouse(
     mut turret: Single<
@@ -42,11 +43,11 @@ pub(crate) fn handle_rotations_by_mouse(
     }
 }
 pub(crate) fn move_sys(
-    mut player: Single<(&mut Transform, &player::Player), With<player::Player>>,
+    mut player: Single<(&mut Velocity, &mut Transform, &player::Player), With<player::Player>>,
     time: Res<Time>,
     input: Res<ButtonInput<KeyCode>>,
 ) {
-    let (ref mut transform, player) = *player;
+    let (ref mut velocity, ref mut transform , player) = *player;
 
     let mut rotation_factor = 0.0;
     let mut movement_factor = 0.0;
@@ -68,9 +69,11 @@ pub(crate) fn move_sys(
     // Get the ship's forward vector by applying the current rotation to the ships initial facing
     // vector
     let movement_direction = transform.rotation * Vec3::Y;
-    let movement_distance = movement_factor * player.movement_speed * time.delta_secs();
-    // Create the change in translation using the new movement direction and distance
-    let translation_delta = movement_direction * movement_distance;
-    // Update the ship translation with our new translation delta
-    transform.translation += translation_delta;
+    //using physics to apply velocity
+    velocity.linvel= movement_direction.xy()*(movement_factor * player.movement_speed);
+    // let movement_distance = movement_factor * player.movement_speed * time.delta_secs();
+    // // Create the change in translation using the new movement direction and distance
+    // let translation_delta = movement_direction * movement_distance;
+    // // Update the ship translation with our new translation delta
+    // transform.translation += translation_delta;
 }

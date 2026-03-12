@@ -6,6 +6,9 @@ use bevy::math::{Rect, Vec3};
 use bevy::prelude::{Commands, Component, IntoScheduleConfigs, Res, Resource, Sprite, Startup, Timer, Transform, Update};
 use bevy::sprite::Anchor;
 use bevy::time::TimerMode;
+use bevy_rapier2d::dynamics::Velocity;
+use bevy_rapier2d::geometry::Collider;
+use bevy_rapier2d::prelude::{LockedAxes, RigidBody};
 use crate::resources::GameResources;
 
 pub mod movement;
@@ -60,6 +63,10 @@ fn setup_player(mut commands: Commands, game_resources: Res<GameResources>) {
                 rotation_speed: PLAYER_ROTATION_SPEED,
                 movement_speed: MOVEMENT_SPEED,
             },
+            LockedAxes::ROTATION_LOCKED,
+            Velocity::default(),
+            RigidBody::Dynamic,
+            Collider::cuboid(37.5, 35.0), // half-extents of the sprite rect
             sprite,
             Transform::from_translation(Vec3::new(0f32, 0f32, 1f32)),
         ))

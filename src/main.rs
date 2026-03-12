@@ -2,17 +2,25 @@ pub mod bullet;
 pub mod effects;
 pub mod player;
 pub mod resources;
+pub mod world;
 
 use bevy::prelude::*;
+use bevy_rapier2d::math::Vect;
+use bevy_rapier2d::plugin::{RapierConfiguration, RapierPhysicsPlugin};
+use bevy_rapier2d::prelude::{NoUserData, RapierDebugRenderPlugin};
 
 fn main() -> AppExit {
     App::new()
         .add_plugins(DefaultPlugins)
-        .add_systems(Startup, startup)
+        .add_plugins(RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(100.0))
+        .add_plugins(RapierDebugRenderPlugin::default()) // remove later
+        .add_systems(Startup, (startup,setup_physics))
         .add_plugins(resources::GameResourcesPlugin)
         .add_plugins(player::PlayerPlugin)
         .add_plugins(bullet::BulletPlugin)
         .add_plugins(effects::EffectsPlugin)
+        .add_plugins(world::WorldPlugin)
+
         .run()
 }
 
@@ -20,4 +28,8 @@ fn main() -> AppExit {
 fn startup(mut commands: Commands) {
     commands.spawn(Camera2d);
 
+}
+fn setup_physics(mut config: Query<&mut RapierConfiguration>) {
+    let mut config = config.single_mut().unwrap();
+    config.gravity = Vect::ZERO;
 }

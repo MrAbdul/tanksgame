@@ -4,8 +4,9 @@ use bevy::input::ButtonInput;
 use bevy::math::{Rect, Vec3};
 use bevy::prelude::{
     Commands, GlobalTransform, MouseButton, Res, Single, Sprite, Time, Timer, TimerMode, Transform,
-    With,
+    Vec3Swizzles, With,
 };
+use bevy_rapier2d::prelude::*;
 
 pub(crate) fn fire_bullet(
     mut commands: Commands,
@@ -38,10 +39,21 @@ pub(crate) fn fire_bullet(
     commands.spawn((
         bullet_sprite,
         bullet::Bullet {
-            velocity: direction * 500.0,
             lifetime: Timer::from_seconds(1.5, TimerMode::Once),
         },
         transform,
+        Collider::cuboid(18.0, 18.0), // half-extents of the sprite rect
+        Sensor,
+        ActiveEvents::COLLISION_EVENTS,
+        ActiveCollisionTypes::KINEMATIC_STATIC,
+
+        RigidBody::KinematicVelocityBased,
+        Velocity {
+            linvel: direction.xy() * 500.0,
+            angvel: 0.0,
+        },
+
+        Ccd::enabled()
     ));
 
     commands.spawn(effects::SmokeEffect::new(
