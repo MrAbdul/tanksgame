@@ -1,13 +1,18 @@
-use std::f32::consts::FRAC_PI_2;
+use crate::player;
 use bevy::camera::{Camera, Camera2d};
 use bevy::input::ButtonInput;
 use bevy::math::{EulerRot, Quat, Vec3, Vec3Swizzles};
-use bevy::prelude::{GlobalTransform, KeyCode, Res, Single, Time, Transform, Window, With, Without};
+use bevy::prelude::{
+    GlobalTransform, KeyCode, Res, Single, Time, Transform, Window, With, Without,
+};
 use bevy::window::PrimaryWindow;
-use crate::player;
+use std::f32::consts::FRAC_PI_2;
 
 pub(crate) fn handle_rotations_by_mouse(
-    mut turret: Single<(&mut Transform, &player::Turret), (With<player::Turret>, Without<player::Player>)>,
+    mut turret: Single<
+        (&mut Transform, &player::Turret),
+        (With<player::Turret>, Without<player::Player>),
+    >,
     tank_transform: Single<&Transform, (With<player::Player>, Without<player::Turret>)>,
     camera_query: Single<(&Camera, &GlobalTransform), With<Camera2d>>,
     window: Single<&Window, With<PrimaryWindow>>,

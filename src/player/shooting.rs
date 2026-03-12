@@ -1,8 +1,10 @@
+use crate::player;
+use crate::{bullet, effects};
 use bevy::input::ButtonInput;
 use bevy::math::{Rect, Vec3};
-use bevy::prelude::{Commands, GlobalTransform, MouseButton, Res, Single, Sprite, Timer, TimerMode, Transform, With};
-use crate::{bullet, effects,};
-use crate::player;
+use bevy::prelude::{
+    Commands, GlobalTransform, MouseButton, Res, Single, Sprite, Timer, TimerMode, Transform, With,
+};
 
 pub(crate) fn fire_bullet(
     mut commands: Commands,
