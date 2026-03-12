@@ -39,7 +39,7 @@ pub(crate) fn fire_bullet(
         bullet_sprite,
         bullet::Bullet {
             velocity: direction * 500.0,
-            lifetime: Timer::from_seconds(0.5, TimerMode::Once),
+            lifetime: Timer::from_seconds(1.5, TimerMode::Once),
         },
         transform,
     ));
