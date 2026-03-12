@@ -3,8 +3,9 @@ use bevy::app::{App, Plugin};
 use bevy::asset::{ Handle};
 use bevy::image::Image;
 use bevy::math::{Rect, Vec3};
-use bevy::prelude::{Commands, Component, IntoScheduleConfigs, Res, Resource, Sprite, Startup, Transform, Update};
+use bevy::prelude::{Commands, Component, IntoScheduleConfigs, Res, Resource, Sprite, Startup, Timer, Transform, Update};
 use bevy::sprite::Anchor;
+use bevy::time::TimerMode;
 use crate::resources::GameResources;
 
 pub mod movement;
@@ -21,6 +22,7 @@ pub(crate) struct Player {
 #[derive(Component)]
 pub(crate) struct Turret {
     pub(crate) rotation_speed: f32,
+    pub(crate) firing_timer: Timer,
 }
 
 #[derive(Resource)]
@@ -68,6 +70,7 @@ fn setup_player(mut commands: Commands, game_resources: Res<GameResources>) {
         .spawn((
             Turret {
                 rotation_speed: TURRET_ROTATION_SPEED,
+                firing_timer: Timer::from_seconds(1.0,TimerMode::Once)
             },
             Anchor::BOTTOM_CENTER,
             turret_sprite,
