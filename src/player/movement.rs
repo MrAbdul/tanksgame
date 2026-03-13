@@ -8,6 +8,7 @@ use bevy::prelude::{
 use bevy::window::PrimaryWindow;
 use std::f32::consts::FRAC_PI_2;
 use bevy_rapier2d::prelude::Velocity;
+use crate::resources::GameConfig;
 
 pub(crate) fn handle_rotations_by_mouse(
     mut turret: Single<
@@ -18,6 +19,7 @@ pub(crate) fn handle_rotations_by_mouse(
     camera_query: Single<(&Camera, &GlobalTransform), With<Camera2d>>,
     window: Single<&Window, With<PrimaryWindow>>,
     time: Res<Time>,
+    game_config: Res<GameConfig>,
 ) {
     let (camera, camera_transform) = *camera_query;
     let (ref mut transform, turret_cfg) = *turret;
@@ -29,7 +31,7 @@ pub(crate) fn handle_rotations_by_mouse(
         let to_cursor = cursor_world_pos - tank_pos;
 
         //think of it as a type of radius, i don't want the turret to rotate while the cursor is inside the tank.
-        if to_cursor.length_squared() < 1000.0 {
+        if to_cursor.length_squared() < game_config.player_rotation_lock_radius {
 
             return;
         }
@@ -80,8 +82,11 @@ pub(crate) fn move_sys(
 pub(crate) fn camera_follow(
     player: Single<&Transform, With<player::Player>>,
     mut camera: Single<&mut Transform, (With<Camera2d>, Without<player::Player>)>,
+    game_config: Option<Res<GameConfig>>
 ){
-    let smoothed= camera.translation.xy().lerp(player.translation.xy(), 0.1);
+    let Some(game_config)= game_config else{return;};
+
+    let smoothed= camera.translation.xy().lerp(player.translation.xy(), game_config.camera_smoothing_factor);
     camera.translation.x= smoothed.x;
     camera.translation.y= smoothed.y;
 }

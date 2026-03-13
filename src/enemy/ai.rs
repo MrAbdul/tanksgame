@@ -6,6 +6,7 @@ use crate::bullet;
 use crate::bullet::BulletType;
 use crate::enemy::{Enemy, EnemyTurret};
 use crate::player::Player;
+use crate::resources::GameConfig;
 
 pub(crate) fn rotate_turret_towards_player(
     player: Single<&Transform, With<Player>>,
@@ -15,8 +16,11 @@ pub(crate) fn rotate_turret_towards_player(
     >,
     tank: Query<(&Transform, &Children), (With<Enemy>, Without<EnemyTurret>)>,
     time: Res<Time>,
+    game_config: Option<Res<GameConfig>>,
     mut commands: Commands,
 ) {
+    let Some(game_config)= game_config else{return;};
+
     let player_pos = player.translation.xy();
 
     for (transform, child_comp) in tank.iter() {
@@ -34,7 +38,7 @@ pub(crate) fn rotate_turret_towards_player(
                 let target_rotation = Quat::from_rotation_z(desired_local_angle);
                 let angle_def=target_rotation.angle_between(transform_child.rotation);
                 //to know when to fire
-                if angle_def<=5.0f32.to_radians(){
+                if angle_def<=game_config.enemy_targeting_angle.to_radians(){
                     //when the enemy is pointed towards the player ticke the timer
                     turret.firing_timer.tick(time.delta());
                     if turret.firing_timer.is_finished() {

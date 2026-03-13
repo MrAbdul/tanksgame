@@ -5,12 +5,9 @@ use bevy::sprite::Anchor;
 use bevy::time::Timer;
 use bevy_rapier2d::dynamics::{LockedAxes, RigidBody, Velocity};
 use bevy_rapier2d::geometry::Collider;
-use crate::resources::GameResources;
+use crate::resources::{GameConfig, GameResources};
 
 pub mod ai;
-pub(crate) const MOVEMENT_SPEED: f32 = 300.0;
-pub(crate) const PLAYER_ROTATION_SPEED: f32 = 2.1;
-pub(crate) const TURRET_ROTATION_SPEED: f32 = 0.5;
 
 #[derive(Component)]
 pub(crate) struct  Enemy{
@@ -32,15 +29,15 @@ impl Plugin for EnemyPlugin{
     }
 }
 
-pub(crate) fn spawn_enemy(commands: &mut Commands, game_resources: &Res<GameResources>, position: Vec3){
+pub(crate) fn spawn_enemy(commands: &mut Commands, game_resources: &Res<GameResources>, position: Vec3,game_config: &Res<GameConfig>){
     let mut sprite = Sprite::from_image(game_resources.game_atlas.clone());
     sprite.rect=Some(game_resources.enemy_tank_body_atlas_rect);
     sprite.flip_y=true;
     let parent = commands
         .spawn((
             Enemy {
-                rotation_speed: PLAYER_ROTATION_SPEED,
-                movement_speed: MOVEMENT_SPEED,
+                rotation_speed: game_config.enemy_tank_rotation_speed,
+                movement_speed: game_config.enemy_tank_movement_speed,
             },
             LockedAxes::ROTATION_LOCKED,
             Velocity::default(),
@@ -55,8 +52,8 @@ pub(crate) fn spawn_enemy(commands: &mut Commands, game_resources: &Res<GameReso
     let turret = commands
         .spawn((
             EnemyTurret {
-                rotation_speed: TURRET_ROTATION_SPEED,
-                firing_timer: Timer::from_seconds(0.3,TimerMode::Once)
+                rotation_speed: game_config.enemy_turret_rotation_speed,
+                firing_timer: Timer::from_seconds(game_config.enemy_firing_timer,TimerMode::Once)
             },
             Anchor::BOTTOM_CENTER,
             turret_sprite,

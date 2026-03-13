@@ -1,8 +1,12 @@
+pub mod game_config_loader;
+
 use bevy::app::App;
 use bevy::asset::AssetServer;
 use bevy::math::Rect;
-use bevy::prelude::{Commands, Handle, Image, Plugin, Res, Resource, Startup};
+use bevy::prelude::{Asset, AssetApp, Assets, Commands, Handle, Image, Local, Plugin, Res, Resource, Startup, TypePath, Update};
+use serde::Deserialize;
 use crate::effects;
+use crate::resources::game_config_loader::GameConfigAssetLoader;
 
 #[derive(Resource)]
 pub(crate) struct GameResources{
@@ -16,14 +20,55 @@ pub(crate) struct GameResources{
     pub(crate) bullet_enemy_atlas_rect:Rect,
 }
 
+#[derive(Resource, Asset, TypePath, Deserialize, Debug,Clone)]
+pub(crate) struct GameConfig{
+    pub player_bullet_base_velocity: f32,//500.0
+    pub enemy_bullet_base_velocity: f32,//500.0
+    pub muzzle_smoke_effect_frame_duration: f32,//0.1
+    pub bullet_explosion_effect_frame_duration: f32,//0.05
+    pub bullet_wall_damage_amount: f32,//25.0
+    pub wall_hit_flash_duration: f32, //0.05
+    pub enemy_tank_rotation_speed: f32, //2.1
+    pub enemy_tank_movement_speed: f32, //300.0
+    pub enemy_turret_rotation_speed: f32, //0.3
+    pub enemy_firing_timer: f32, //0.5
+    pub enemy_targeting_angle: f32, //5.0
+    pub player_tank_rotation_speed: f32, //2.1
+    pub player_tank_movement_speed: f32,//350
+    pub player_turret_rotation_speed: f32,//3.1
+    pub player_firing_timer: f32, //0.5
+    pub player_rotation_lock_radius: f32,//1000.0
+    pub camera_smoothing_factor: f32,//0.1
+}
+#[derive(Resource)]
+pub(crate) struct GameConfigHandle(pub(crate) Handle<GameConfig>);
 pub(crate) struct GameResourcesPlugin;
 
 impl Plugin for GameResourcesPlugin{
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup,load_resources);
+        app
+            .init_asset::<GameConfig>()
+            .init_asset_loader::<GameConfigAssetLoader>()
+            .add_systems(Startup,load_resources)
+            .add_systems(Startup,load_config)
+            .add_systems(Update,promote_config_to_resource);
     }
 }
-
+fn load_config(asset_server: Res<AssetServer>, mut commands: Commands) {
+    let handle: Handle<GameConfig> = asset_server.load("config/game_config.ron");
+    commands.insert_resource(GameConfigHandle(handle));
+}
+pub(crate) fn promote_config_to_resource(
+    mut commands: Commands,
+    handle: Res<GameConfigHandle>,
+    assets: Res<Assets<GameConfig>>,
+    mut already_done: Local<bool>,
+) {
+    if *already_done { return; }
+    let Some(config) = assets.get(&handle.0) else { return; };
+    commands.insert_resource(config.clone());
+    *already_done = true;
+}
 pub(crate) fn load_resources(mut commands: Commands,asset_server: Res<AssetServer>){
     commands.insert_resource(GameResources{
         game_atlas: asset_server.load("images/tank/sheet_tanks.png"),

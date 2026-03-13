@@ -2,7 +2,7 @@ pub(crate) mod tiles;
 pub(crate) mod wall;
 pub(crate) mod map_loader;
 
-use crate::resources::GameResources;
+use crate::resources::{GameConfig, GameResources};
 use bevy::prelude::*;
 use bevy::sprite_render::Material2dPlugin;
 use map_loader::{MapAsset, MapAssetLoader};
@@ -26,7 +26,7 @@ impl Plugin for WorldPlugin {
             //registers the loader, the loader declares that it loads the extension ron in its extensions method
             .init_asset_loader::<MapAssetLoader>()
             .add_systems(Startup, load_map.after(crate::resources::load_resources))
-            .add_systems(Update, spawn_map_when_ready)
+            .add_systems(Update, spawn_map_when_ready.after(crate::resources::promote_config_to_resource))
             //the bridge to translate gameplay state to the material
             .add_systems(Update, sync_wall_materials);
     }
@@ -52,6 +52,7 @@ fn spawn_map_when_ready(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<WallMaterial>>,
     mut already_spawned: Local<bool>,
+    game_config: Option<Res<GameConfig>>,
 ) {
     if *already_spawned {
         return;
@@ -62,6 +63,8 @@ fn spawn_map_when_ready(
     let Some(map) = map_assets.get(&map_handle.0) else {
         return; // not ready yet, try next frame
     };
+    //if game config is not ready yet
+    let Some(game_config)= game_config else{return;};
 
     let crack_mask = asset_server.load("images/tank/wall_cracks_mask.png");
     let map_width = map.tiles[0].len() as f32 * TILE_SIZE.x;
@@ -88,10 +91,10 @@ fn spawn_map_when_ready(
                 }
                 Some(TileType::PlayerSpawn) => {
 
-                    crate::player::spawn_player(&mut commands, &game_resources, world_pos.extend(1.0));
+                    crate::player::spawn_player(&mut commands, &game_resources, world_pos.extend(1.0),&game_config);
                 }
                 Some(TileType::EnemySpawn)=>{
-                    crate::enemy::spawn_enemy(&mut commands, &game_resources, world_pos.extend(1.0))
+                    crate::enemy::spawn_enemy(&mut commands, &game_resources, world_pos.extend(1.0),&game_config)
                 }
                 _ => {} // Empty, future tile types handled here
             }

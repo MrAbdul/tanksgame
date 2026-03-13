@@ -6,14 +6,11 @@ use bevy::time::TimerMode;
 use bevy_rapier2d::dynamics::Velocity;
 use bevy_rapier2d::geometry::Collider;
 use bevy_rapier2d::prelude::{LockedAxes, RigidBody};
-use crate::resources::GameResources;
+use crate::resources::{GameConfig, GameResources};
 
 pub mod movement;
 pub mod shooting;
 
-pub(crate) const MOVEMENT_SPEED: f32 = 300.0;
-pub(crate) const PLAYER_ROTATION_SPEED: f32 = 2.1;
-pub(crate) const TURRET_ROTATION_SPEED: f32 = 3.1;
 #[derive(Component)]
 pub(crate) struct Player {
     pub(crate) movement_speed: f32,
@@ -36,7 +33,7 @@ impl Plugin for PlayerPlugin {
             .add_systems(Update, movement::camera_follow);
     }
 }
-pub(crate) fn spawn_player( commands: &mut Commands, game_resources: &Res<GameResources>,position:Vec3) {
+pub(crate) fn spawn_player( commands: &mut Commands, game_resources: &Res<GameResources>,position:Vec3,game_config:&Res<GameConfig> ) {
     let mut sprite = Sprite::from_image(game_resources.game_atlas.clone());
     sprite.rect = Some(game_resources.tank_body_atlas_rect);
     sprite.flip_y = true;
@@ -44,8 +41,8 @@ pub(crate) fn spawn_player( commands: &mut Commands, game_resources: &Res<GameRe
     let parent = commands
         .spawn((
             Player {
-                rotation_speed: PLAYER_ROTATION_SPEED,
-                movement_speed: MOVEMENT_SPEED,
+                rotation_speed: game_config.player_tank_rotation_speed,
+                movement_speed: game_config.player_tank_movement_speed,
             },
             LockedAxes::ROTATION_LOCKED,
             Velocity::default(),
@@ -60,8 +57,8 @@ pub(crate) fn spawn_player( commands: &mut Commands, game_resources: &Res<GameRe
     let turret = commands
         .spawn((
             Turret {
-                rotation_speed: TURRET_ROTATION_SPEED,
-                firing_timer: Timer::from_seconds(0.5,TimerMode::Once)
+                rotation_speed: game_config.player_turret_rotation_speed,
+                firing_timer: Timer::from_seconds(game_config.player_firing_timer,TimerMode::Once)
             },
             Anchor::BOTTOM_CENTER,
             turret_sprite,

@@ -1,5 +1,5 @@
 use crate::resources::GameResources;
-use crate::{bullet, effects, PendingDespawn};
+use crate::{bullet, effects, resources, PendingDespawn};
 use bevy::prelude::*;
 use bevy::time::Timer;
 use bevy_rapier2d::prelude::*;
@@ -33,7 +33,9 @@ impl Plugin for BulletPlugin {
 }
 
 //an event observer
-fn on_fire(fire:On<FireEvent>,game_resources: Res<GameResources>, mut commands:Commands) {
+fn on_fire(fire:On<FireEvent>,game_resources: Res<GameResources>, mut commands:Commands,game_config:Option<Res<resources::GameConfig>>) {
+    let Some(game_config)= game_config else{return;};
+
     let mut sprite= Sprite::from_image(game_resources.game_atlas.clone());
     sprite.rect=Some(match fire.bullet_type {
         BulletType::Blue => game_resources.bullet_atlas_rect,
@@ -55,7 +57,10 @@ fn on_fire(fire:On<FireEvent>,game_resources: Res<GameResources>, mut commands:C
 
         RigidBody::KinematicVelocityBased,
         Velocity {
-            linvel: direction.xy() * 500.0,
+            linvel: direction.xy() * match fire.bullet_type {
+                BulletType::Blue => game_config.player_bullet_base_velocity,
+                BulletType::Red => game_config.enemy_bullet_base_velocity,
+            },
             angvel: 0.0,
         },
 
@@ -66,20 +71,18 @@ fn on_fire(fire:On<FireEvent>,game_resources: Res<GameResources>, mut commands:C
         effects::SmokeType::Grey,
         &game_resources.effect_resources,
         fire.muzzle_world_pos,
-        0.1,
+        game_config.muzzle_smoke_effect_frame_duration,
     ));
 }
-// pub(crate) fn move_bullets(mut bullets: Query<(&mut Transform, &Bullet)>, time: Res<Time>) {
-//     for (mut transform, bullet) in &mut bullets {
-//         transform.translation += bullet.velocity * time.delta_secs();
-//     }
-// }
 fn despawn_bullets(
     mut commands: Commands,
     mut bullets: Query<(Entity, &mut Bullet, &Transform), Without<PendingDespawn>>,
     time: Res<Time>,
+    game_config: Option<Res<resources::GameConfig>>,
     game_resources: Res<GameResources>,
 ) {
+    let Some(game_config)= game_config else{return;};
+
     for (entity, mut bullet, transform) in &mut bullets {
         bullet.lifetime.tick(time.delta());
         if bullet.lifetime.is_finished() {
@@ -87,7 +90,7 @@ fn despawn_bullets(
                 effects::SmokeType::Yellow,
                 &game_resources.effect_resources,
                 transform.translation,
-                0.05,
+                game_config.bullet_explosion_effect_frame_duration,
             ));
             commands.entity(entity).insert(PendingDespawn);
         }
@@ -101,7 +104,10 @@ pub(crate) fn bullet_hit_wall(
         (&mut crate::world::wall::Wall, &mut  crate::world::wall::WallFlash),
         Without<PendingDespawn>,
     >,
+    game_config: Option<Res<resources::GameConfig>>,
 ) {
+    let Some(game_config)= game_config else{return;};
+
     for event in collision_events.read() {
         //here we extract e1 and e2 if the event variant is started. else we continue the loop
         let CollisionEvent::Started(e1, e2, _) = event else {
@@ -122,8 +128,8 @@ pub(crate) fn bullet_hit_wall(
             continue;
         };
         //float arithmitic hijenks
-        wall.health = (wall.health - 25.0).max(0.0);
-        flash.timer = Timer::from_seconds(0.05, TimerMode::Once);
+        wall.health = (wall.health - game_config.bullet_wall_damage_amount).max(0.0);
+        flash.timer = Timer::from_seconds(game_config.wall_hit_flash_duration, TimerMode::Once);
         //que the despawon of the bullet
         commands.entity(bullet_entity).insert(PendingDespawn);
         if wall.health == 0.0 {
