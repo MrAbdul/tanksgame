@@ -2,6 +2,7 @@ pub mod game_config_loader;
 
 use bevy::app::App;
 use bevy::asset::AssetServer;
+use bevy::audio::AudioSource;
 use bevy::math::Rect;
 use bevy::prelude::{Asset, AssetApp, Assets, Commands, Handle, Image, Local, Plugin, Res, Resource, Startup, TypePath, Update};
 use serde::Deserialize;
@@ -18,6 +19,7 @@ pub(crate) struct GameResources{
     pub(crate) enemy_tank_body_atlas_rect: Rect,
     pub(crate) enemy_turret_atlas_rect:Rect,
     pub(crate) bullet_enemy_atlas_rect:Rect,
+    pub(crate) sound_firing:Handle<AudioSource>,
 }
 
 #[derive(Resource, Asset, TypePath, Deserialize, Debug,Clone)]
@@ -91,6 +93,9 @@ pub(crate) fn load_resources(mut commands: Commands,asset_server: Res<AssetServe
             Rect::new(416.0, 89.0, 416.0 + 90.0, 89.0 + 99.0),
 
         ],
-    }})
+    },
+
+        sound_firing: asset_server.load("sound_effects/tank-firing.ogg"),
+    })
 
 }

@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-bevy = {version= "0.18",features = ["default","debug"]}
+bevy = {version= "0.18",features = ["default","debug","vorbis"]}
 bevy_rapier2d = { version = "0.33.0", features = ["debug-render-2d"] }
 
 # Set max log levels. This helps avoid unwanted low-severity log spam, which can affect performance.

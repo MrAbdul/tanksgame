@@ -4,6 +4,8 @@ pub mod player;
 pub mod resources;
 pub mod world;
 pub mod enemy;
+pub mod ui;
+pub mod audio;
 
 use bevy::prelude::*;
 use bevy_rapier2d::math::Vect;
@@ -24,6 +26,8 @@ fn main() -> AppExit {
         .add_plugins(effects::EffectsPlugin)
         .add_plugins(world::WorldPlugin)
         .add_plugins(enemy::EnemyPlugin)
+        .add_plugins(ui::UiPlugin)
+        .add_plugins(audio::GameAudioPlugin)
         //after the systems that will attach despawn
         .add_systems(
             Update,

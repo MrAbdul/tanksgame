@@ -28,8 +28,11 @@ pub(crate) fn rotate_turret_towards_player(
             if let Ok(child) = enemy_turret_query.get_mut(*child) {
                 let (mut transform_child, mut turret,global_transform) = child;
                 let to_player = player_pos - transform.translation.xy();
-                if to_player.length_squared() == 0.0 {
-                    return;
+                // added distance to know when to fire
+                let distance =player_pos.distance(transform.translation.xy());
+
+                if distance < 50.0 || distance > 1000.0 {
+                    continue;
                 }
                 let desired_world_angle = to_player.to_angle() - FRAC_PI_2;
                 let tank_body_angle = transform.rotation.to_euler(EulerRot::XYZ).2;

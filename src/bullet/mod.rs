@@ -1,5 +1,6 @@
+use crate::player::Player;
 use crate::resources::GameResources;
-use crate::{bullet, effects, resources, PendingDespawn};
+use crate::{audio, bullet, effects, resources, PendingDespawn};
 use bevy::prelude::*;
 use bevy::time::Timer;
 use bevy_rapier2d::prelude::*;
@@ -10,15 +11,16 @@ pub(crate) struct Bullet {
 }
 
 #[derive(Event)]
-pub(crate) struct  FireEvent{
+pub(crate) struct FireEvent {
     pub(crate) muzzle_world_pos: Vec3,
     pub(crate) base_world_pos: Vec3,
-    pub(crate) bullet_type:BulletType,
-    pub(crate) global_turret_rotation: Quat
+    pub(crate) bullet_type: BulletType,
+    pub(crate) global_turret_rotation: Quat,
 }
 
-pub(crate) enum BulletType{
-    Blue,Red
+pub(crate) enum BulletType {
+    Blue,
+    Red,
 }
 pub(crate) struct BulletPlugin;
 
@@ -33,17 +35,33 @@ impl Plugin for BulletPlugin {
 }
 
 //an event observer
-fn on_fire(fire:On<FireEvent>,game_resources: Res<GameResources>, mut commands:Commands,game_config:Option<Res<resources::GameConfig>>) {
-    let Some(game_config)= game_config else{return;};
+fn on_fire(
+    fire: On<FireEvent>,
+    game_resources: Res<GameResources>,
+    mut commands: Commands,
+    game_config: Option<Res<resources::GameConfig>>,
+    audio_resource: Option<Res<audio::GameAudio>>,
+    player_transform: Query<&Transform, With<Player>>,
 
-    let mut sprite= Sprite::from_image(game_resources.game_atlas.clone());
-    sprite.rect=Some(match fire.bullet_type {
+) {
+    let Some(game_config) = game_config else {
+        return;
+    };
+    let Some(audio_resource) = audio_resource else {
+        return;
+    };
+    let Ok(player_transform) = player_transform.single() else {
+        return;
+    };
+
+    let mut sprite = Sprite::from_image(game_resources.game_atlas.clone());
+    sprite.rect = Some(match fire.bullet_type {
         BulletType::Blue => game_resources.bullet_atlas_rect,
-        BulletType::Red => game_resources.bullet_enemy_atlas_rect
+        BulletType::Red => game_resources.bullet_enemy_atlas_rect,
     });
     let direction = (fire.muzzle_world_pos - fire.base_world_pos).normalize();
     let mut transform = Transform::from_translation(fire.muzzle_world_pos);
-    transform.rotation=fire.global_turret_rotation;
+    transform.rotation = fire.global_turret_rotation;
     commands.spawn((
         sprite,
         bullet::Bullet {
@@ -54,18 +72,27 @@ fn on_fire(fire:On<FireEvent>,game_resources: Res<GameResources>, mut commands:C
         Sensor,
         ActiveEvents::COLLISION_EVENTS,
         ActiveCollisionTypes::KINEMATIC_STATIC,
-
         RigidBody::KinematicVelocityBased,
         Velocity {
-            linvel: direction.xy() * match fire.bullet_type {
-                BulletType::Blue => game_config.player_bullet_base_velocity,
-                BulletType::Red => game_config.enemy_bullet_base_velocity,
-            },
+            linvel: direction.xy()
+                * match fire.bullet_type {
+                    BulletType::Blue => game_config.player_bullet_base_velocity,
+                    BulletType::Red => game_config.enemy_bullet_base_velocity,
+                },
             angvel: 0.0,
         },
-
-        Ccd::enabled()
+        Ccd::enabled(),
     ));
+
+    audio::play_one_shot(&mut commands, audio_resource.player_fire.clone(), match fire.bullet_type{
+        BulletType::Blue => 0.7,
+        BulletType::Red => {
+            let distance =fire.muzzle_world_pos.distance(player_transform.translation);
+            //modulate the value
+            let mapped = 1.0-(((distance - 50.0) / (1000.0 - 50.0)).clamp(0.0, 1.0));
+            mapped
+        }
+    });
 
     commands.spawn(effects::SmokeEffect::new(
         effects::SmokeType::Grey,
@@ -80,12 +107,20 @@ fn despawn_bullets(
     time: Res<Time>,
     game_config: Option<Res<resources::GameConfig>>,
     game_resources: Res<GameResources>,
+    audio_resource: Option<Res<audio::GameAudio>>,
 ) {
-    let Some(game_config)= game_config else{return;};
+    let Some(game_config) = game_config else {
+        return;
+    };
+    let Some(audio_resource) = audio_resource else {
+        return;
+    };
 
     for (entity, mut bullet, transform) in &mut bullets {
         bullet.lifetime.tick(time.delta());
         if bullet.lifetime.is_finished() {
+            audio::play_one_shot(&mut commands, audio_resource.explosion.clone(), 0.1);
+
             commands.spawn(effects::SmokeEffect::new(
                 effects::SmokeType::Yellow,
                 &game_resources.effect_resources,
@@ -101,13 +136,21 @@ pub(crate) fn bullet_hit_wall(
     mut collision_events: MessageReader<CollisionEvent>,
     bullets: Query<Entity, (With<Bullet>, Without<PendingDespawn>)>,
     mut walls: Query<
-        (&mut crate::world::wall::Wall, &mut  crate::world::wall::WallFlash),
+        (
+            &mut crate::world::wall::Wall,
+            &mut crate::world::wall::WallFlash,
+        ),
         Without<PendingDespawn>,
     >,
     game_config: Option<Res<resources::GameConfig>>,
+    audio_resource: Option<Res<audio::GameAudio>>,
 ) {
-    let Some(game_config)= game_config else{return;};
-
+    let Some(game_config) = game_config else {
+        return;
+    };
+    let Some(audio_resource) = audio_resource else {
+        return;
+    };
     for event in collision_events.read() {
         //here we extract e1 and e2 if the event variant is started. else we continue the loop
         let CollisionEvent::Started(e1, e2, _) = event else {
@@ -128,6 +171,7 @@ pub(crate) fn bullet_hit_wall(
             continue;
         };
         //float arithmitic hijenks
+        audio::play_one_shot(&mut commands, audio_resource.wall_hit.clone(), 0.8);
         wall.health = (wall.health - game_config.bullet_wall_damage_amount).max(0.0);
         flash.timer = Timer::from_seconds(game_config.wall_hit_flash_duration, TimerMode::Once);
         //que the despawon of the bullet
