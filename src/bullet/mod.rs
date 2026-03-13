@@ -2,6 +2,7 @@ use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
 use bevy::time::Timer;
 use crate::{effects, PendingDespawn};
+use crate::resources::GameResources;
 
 #[derive(Component)]
 pub(crate) struct Bullet {
@@ -23,13 +24,13 @@ impl Plugin for BulletPlugin {
 //         transform.translation += bullet.velocity * time.delta_secs();
 //     }
 // }
-fn despawn_bullets(mut commands: Commands, mut bullets: Query<(Entity, &mut Bullet, &Transform),Without<PendingDespawn>>, time: Res<Time>,smoke_assets:Res<effects::AnimationAssets> ) {
+fn despawn_bullets(mut commands: Commands, mut bullets: Query<(Entity, &mut Bullet, &Transform),Without<PendingDespawn>>, time: Res<Time>,game_resources:Res<GameResources> ) {
     for (entity, mut bullet, transform) in &mut bullets {
         bullet.lifetime.tick(time.delta());
         if bullet.lifetime.is_finished() {
             commands.spawn(effects::SmokeEffect::new(
                 effects::SmokeType::Yellow,
-                &smoke_assets,
+                &game_resources.effect_resources,
                 transform.translation,
                 0.05,
             ));
@@ -37,11 +38,11 @@ fn despawn_bullets(mut commands: Commands, mut bullets: Query<(Entity, &mut Bull
         }
     }
 }
-fn bullet_hit_wall(
+pub(crate) fn bullet_hit_wall(
     mut commands: Commands,
     mut collision_events: MessageReader<CollisionEvent>,
-    bullets: Query<Entity, (With<crate::bullet::Bullet>, Without<crate::PendingDespawn>)>, // add this
-    mut walls: Query<(&mut crate::world::Wall, &mut crate::world::WallFlash), Without<crate::PendingDespawn>>, // add this
+    bullets: Query<Entity, (With<Bullet>, Without<PendingDespawn>)>, // add this
+    mut walls: Query<(&mut crate::world::Wall, &mut crate::world::WallFlash), Without<PendingDespawn>>, // add this
 )  {
     for event in collision_events.read() {
         if let CollisionEvent::Started(e1, e2, _) = event {

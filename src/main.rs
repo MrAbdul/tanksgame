@@ -15,27 +15,31 @@ fn main() -> AppExit {
         .add_plugins(DefaultPlugins)
         .add_plugins(RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(100.0))
         .add_plugins(RapierDebugRenderPlugin::default()) // remove later
-        .add_systems(Startup, (startup,setup_physics))
+        .add_systems(Startup, (startup, setup_physics))
         .add_plugins(resources::GameResourcesPlugin)
         .add_plugins(player::PlayerPlugin)
         .add_plugins(bullet::BulletPlugin)
         .add_plugins(effects::EffectsPlugin)
         .add_plugins(world::WorldPlugin)
-        .add_systems(Update,cleanup)
-
+        //after the systems that will attach despawn
+        .add_systems(
+            Update,
+            cleanup
+                .after(bullet::bullet_hit_wall)
+                .after(effects::animate_smoke),
+        )
         .run()
 }
 
 //startup system
 fn startup(mut commands: Commands) {
     commands.spawn(Camera2d);
-
 }
 fn setup_physics(mut config: Query<&mut RapierConfiguration>) {
     let mut config = config.single_mut().unwrap();
     config.gravity = Vect::ZERO;
 }
-fn cleanup(mut commands: Commands,query: Query<Entity, With<PendingDespawn>>) {
+fn cleanup(mut commands: Commands, query: Query<Entity, With<PendingDespawn>>) {
     for entity in query.iter() {
         commands.entity(entity).despawn();
     }

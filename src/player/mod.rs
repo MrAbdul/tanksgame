@@ -1,9 +1,7 @@
 use crate::{resources};
 use bevy::app::{App, Plugin};
-use bevy::asset::{ Handle};
-use bevy::image::Image;
-use bevy::math::{Rect, Vec3};
-use bevy::prelude::{Commands, Component, IntoScheduleConfigs, Res, Resource, Sprite, Startup, Timer, Transform, Update};
+use bevy::math::{ Vec3};
+use bevy::prelude::{Commands, Component, IntoScheduleConfigs, Res, Sprite, Startup, Timer, Transform, Update};
 use bevy::sprite::Anchor;
 use bevy::time::TimerMode;
 use bevy_rapier2d::dynamics::Velocity;
@@ -28,12 +26,6 @@ pub(crate) struct Turret {
     pub(crate) firing_timer: Timer,
 }
 
-#[derive(Resource)]
-pub(crate) struct TankResources {
-    pub(crate) image: Handle<Image>,
-    pub(crate) body: Rect,
-    pub(crate) turret: Rect,
-}
 pub(crate) struct PlayerPlugin;
 
 impl Plugin for PlayerPlugin {
@@ -45,16 +37,8 @@ impl Plugin for PlayerPlugin {
     }
 }
 fn setup_player(mut commands: Commands, game_resources: Res<GameResources>) {
-    let tank_body_rect = Rect::new(671.0, 70.0, 746.0, 140.0);
-    let turret_rect = Rect::new(850.0, 58.0, 850.0 + 16.0, 58.0 + 50.0);
-    let tank_resources = TankResources {
-        image: game_resources.game_atlas.clone(),
-        body: tank_body_rect,
-        turret: turret_rect,
-    };
-
-    let mut sprite = Sprite::from_image(tank_resources.image.clone());
-    sprite.rect = Some(tank_resources.body);
+    let mut sprite = Sprite::from_image(game_resources.game_atlas.clone());
+    sprite.rect = Some(game_resources.tank_body_atlas_rect);
     sprite.flip_y = true;
 
     let parent = commands
@@ -72,7 +56,7 @@ fn setup_player(mut commands: Commands, game_resources: Res<GameResources>) {
         ))
         .id();
     let mut turret_sprite = Sprite::from_image(game_resources.game_atlas.clone());
-    turret_sprite.rect = Some(tank_resources.turret);
+    turret_sprite.rect = Some(game_resources.turret_atlas_rect);
     let turret = commands
         .spawn((
             Turret {
@@ -86,5 +70,4 @@ fn setup_player(mut commands: Commands, game_resources: Res<GameResources>) {
         .id();
 
     commands.entity(parent).add_child(turret);
-    commands.insert_resource(tank_resources);
 }

@@ -92,10 +92,7 @@ fn spawn_walls_from_map(
     for (row, line) in MAP.iter().enumerate() {
         for (col, ch) in line.chars().enumerate() {
             if ch == '#' {
-                let position = origin + Vec2::new(
-                    col as f32 * TILE_SIZE.x,
-                    -(row as f32) * TILE_SIZE.y,
-                );
+                let position = origin + grid_to_world(col,row,TILE_SIZE) ;
 
                 spawn_wall(
                     &mut commands,
@@ -109,6 +106,7 @@ fn spawn_walls_from_map(
         }
     }
 }
+#[allow(dead_code)]
 fn spawn_walls(
     mut commands: Commands,
     game_resources: Res<GameResources>,
@@ -138,7 +136,7 @@ fn spawn_walls(
 }
 
 fn grid_to_world(col: usize, row: usize, tile_size: Vec2) -> Vec2 {
-    Vec2::new(col as f32 * tile_size.x, -(row as f32) * tile_size.y)
+    Vec2::new(col as f32 * tile_size.x+tile_size.x*0.5, -(row as f32) * tile_size.y+tile_size.y*0.5)
 }
 fn spawn_wall(
     commands: &mut Commands,

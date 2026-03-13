@@ -1,7 +1,7 @@
 use crate::player;
 use crate::{bullet, effects};
 use bevy::input::ButtonInput;
-use bevy::math::{Rect, Vec3};
+use bevy::math::{ Vec3};
 use bevy::prelude::{
     Commands, GlobalTransform, MouseButton, Res, Single, Sprite, Time, Timer, TimerMode, Transform,
     Vec3Swizzles, With,
@@ -12,8 +12,7 @@ pub(crate) fn fire_bullet(
     mut commands: Commands,
     mouse: Res<ButtonInput<MouseButton>>,
     mut query: Single<(&GlobalTransform, &mut player::Turret), With<player::Turret>>,
-    tank_resources: Res<player::TankResources>,
-    smoke_assets: Res<effects::AnimationAssets>,
+    game_resources: Res<player::GameResources>,
     time: Res<Time>,
 ) {
     let (turret_global, ref mut turret) = *query;
@@ -32,8 +31,8 @@ pub(crate) fn fire_bullet(
     let muzzle_world = turret_global.transform_point(Vec3::new(0.0, 65.0, 0.0));
 
     let direction = (muzzle_world - base_world).normalize();
-    let mut bullet_sprite = Sprite::from_image(tank_resources.image.clone());
-    bullet_sprite.rect = Some(Rect::new(148.0, 345.0, 148.0 + 20.0, 345.0 + 33.0));
+    let mut bullet_sprite = Sprite::from_image(game_resources.game_atlas.clone());
+    bullet_sprite.rect = Some(game_resources.bullet_atlas_rect);
     let mut transform = Transform::from_translation(muzzle_world);
     transform.rotation = turret_global.rotation();
     commands.spawn((
@@ -58,7 +57,7 @@ pub(crate) fn fire_bullet(
 
     commands.spawn(effects::SmokeEffect::new(
         effects::SmokeType::Grey,
-        &smoke_assets,
+        &game_resources.effect_resources,
         muzzle_world,
         0.1,
     ));
