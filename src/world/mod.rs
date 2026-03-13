@@ -90,6 +90,9 @@ fn spawn_map_when_ready(
 
                     crate::player::spawn_player(&mut commands, &game_resources, world_pos.extend(1.0));
                 }
+                Some(TileType::EnemySpawn)=>{
+                    crate::enemy::spawn_enemy(&mut commands, &game_resources, world_pos.extend(1.0))
+                }
                 _ => {} // Empty, future tile types handled here
             }
         }

@@ -28,7 +28,9 @@ pub(crate) fn handle_rotations_by_mouse(
         let tank_pos = tank_transform.translation.xy();
         let to_cursor = cursor_world_pos - tank_pos;
 
-        if to_cursor.length_squared() == 0.0 {
+        //think of it as a type of radius, i don't want the turret to rotate while the cursor is inside the tank.
+        if to_cursor.length_squared() < 1000.0 {
+
             return;
         }
 

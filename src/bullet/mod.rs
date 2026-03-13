@@ -1,5 +1,5 @@
 use crate::resources::GameResources;
-use crate::{effects, PendingDespawn};
+use crate::{bullet, effects, PendingDespawn};
 use bevy::prelude::*;
 use bevy::time::Timer;
 use bevy_rapier2d::prelude::*;
@@ -9,6 +9,17 @@ pub(crate) struct Bullet {
     pub(crate) lifetime: Timer,
 }
 
+#[derive(Event)]
+pub(crate) struct  FireEvent{
+    pub(crate) muzzle_world_pos: Vec3,
+    pub(crate) base_world_pos: Vec3,
+    pub(crate) bullet_type:BulletType,
+    pub(crate) global_turret_rotation: Quat
+}
+
+pub(crate) enum BulletType{
+    Blue,Red
+}
 pub(crate) struct BulletPlugin;
 
 impl Plugin for BulletPlugin {
@@ -16,8 +27,47 @@ impl Plugin for BulletPlugin {
         app
             // .add_systems(Update, move_bullets)
             .add_systems(Update, despawn_bullets)
+            .add_observer(on_fire)
             .add_systems(Update, bullet_hit_wall.after(despawn_bullets));
     }
+}
+
+//an event observer
+fn on_fire(fire:On<FireEvent>,game_resources: Res<GameResources>, mut commands:Commands) {
+    let mut sprite= Sprite::from_image(game_resources.game_atlas.clone());
+    sprite.rect=Some(match fire.bullet_type {
+        BulletType::Blue => game_resources.bullet_atlas_rect,
+        BulletType::Red => game_resources.bullet_enemy_atlas_rect
+    });
+    let direction = (fire.muzzle_world_pos - fire.base_world_pos).normalize();
+    let mut transform = Transform::from_translation(fire.muzzle_world_pos);
+    transform.rotation=fire.global_turret_rotation;
+    commands.spawn((
+        sprite,
+        bullet::Bullet {
+            lifetime: Timer::from_seconds(1.5, TimerMode::Once),
+        },
+        transform,
+        Collider::cuboid(18.0, 18.0), // half-extents of the sprite rect
+        Sensor,
+        ActiveEvents::COLLISION_EVENTS,
+        ActiveCollisionTypes::KINEMATIC_STATIC,
+
+        RigidBody::KinematicVelocityBased,
+        Velocity {
+            linvel: direction.xy() * 500.0,
+            angvel: 0.0,
+        },
+
+        Ccd::enabled()
+    ));
+
+    commands.spawn(effects::SmokeEffect::new(
+        effects::SmokeType::Grey,
+        &game_resources.effect_resources,
+        fire.muzzle_world_pos,
+        0.1,
+    ));
 }
 // pub(crate) fn move_bullets(mut bullets: Query<(&mut Transform, &Bullet)>, time: Res<Time>) {
 //     for (mut transform, bullet) in &mut bullets {

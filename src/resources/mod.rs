@@ -10,7 +10,10 @@ pub(crate) struct GameResources{
     pub(crate) bullet_atlas_rect:Rect,
     pub(crate) tank_body_atlas_rect:Rect,
     pub(crate) turret_atlas_rect:Rect,
-    pub(crate) effect_resources:effects::AnimationAssets
+    pub(crate) effect_resources:effects::AnimationAssets,
+    pub(crate) enemy_tank_body_atlas_rect: Rect,
+    pub(crate) enemy_turret_atlas_rect:Rect,
+    pub(crate) bullet_enemy_atlas_rect:Rect,
 }
 
 pub(crate) struct GameResourcesPlugin;
@@ -27,6 +30,9 @@ pub(crate) fn load_resources(mut commands: Commands,asset_server: Res<AssetServe
         bullet_atlas_rect:Rect::new(148.0, 345.0, 148.0 + 20.0, 345.0 + 33.0),
         tank_body_atlas_rect:Rect::new(671.0, 70.0, 746.0, 140.0),
         turret_atlas_rect:Rect::new(850.0, 58.0, 850.0 + 16.0, 58.0 + 50.0),
+        enemy_tank_body_atlas_rect:Rect::new(588.0, 0.0, 588.0 + 83.0, 0.0 + 78.0),
+        bullet_enemy_atlas_rect:Rect::new(711.0, 140.0, 711.0 + 20.0, 140.0 + 34.0),
+        enemy_turret_atlas_rect:Rect::new(834.0, 0.0, 834.0 + 24.0, 0.0 + 58.0),
         effect_resources: effects::AnimationAssets {
         image: asset_server.load("images/tank/sheet_tanks.png"),
         grey_smoke_frames: vec![

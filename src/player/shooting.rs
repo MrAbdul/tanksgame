@@ -1,18 +1,16 @@
 use crate::player;
-use crate::{bullet, effects};
+use crate::{bullet};
 use bevy::input::ButtonInput;
 use bevy::math::{ Vec3};
 use bevy::prelude::{
-    Commands, GlobalTransform, MouseButton, Res, Single, Sprite, Time, Timer, TimerMode, Transform,
-    Vec3Swizzles, With,
+    Commands, GlobalTransform, MouseButton, Res, Single, Time, With
 };
-use bevy_rapier2d::prelude::*;
+use crate::bullet::BulletType;
 
 pub(crate) fn fire_bullet(
     mut commands: Commands,
     mouse: Res<ButtonInput<MouseButton>>,
     mut query: Single<(&GlobalTransform, &mut player::Turret), With<player::Turret>>,
-    game_resources: Res<player::GameResources>,
     time: Res<Time>,
 ) {
     let (turret_global, ref mut turret) = *query;
@@ -27,40 +25,13 @@ pub(crate) fn fire_bullet(
     if !turret.firing_timer.is_finished() {
         return;
     }
-    let base_world = turret_global.transform_point(Vec3::ZERO);
-    let muzzle_world = turret_global.transform_point(Vec3::new(0.0, 65.0, 0.0));
 
-    let direction = (muzzle_world - base_world).normalize();
-    let mut bullet_sprite = Sprite::from_image(game_resources.game_atlas.clone());
-    bullet_sprite.rect = Some(game_resources.bullet_atlas_rect);
-    let mut transform = Transform::from_translation(muzzle_world);
-    transform.rotation = turret_global.rotation();
-    commands.spawn((
-        bullet_sprite,
-        bullet::Bullet {
-            lifetime: Timer::from_seconds(1.5, TimerMode::Once),
-        },
-        transform,
-        Collider::cuboid(18.0, 18.0), // half-extents of the sprite rect
-        Sensor,
-        ActiveEvents::COLLISION_EVENTS,
-        ActiveCollisionTypes::KINEMATIC_STATIC,
-
-        RigidBody::KinematicVelocityBased,
-        Velocity {
-            linvel: direction.xy() * 500.0,
-            angvel: 0.0,
-        },
-
-        Ccd::enabled()
-    ));
-
-    commands.spawn(effects::SmokeEffect::new(
-        effects::SmokeType::Grey,
-        &game_resources.effect_resources,
-        muzzle_world,
-        0.1,
-    ));
+    commands.trigger(bullet::FireEvent{
+        base_world_pos:turret_global.transform_point(Vec3::ZERO),
+        muzzle_world_pos:turret_global.transform_point(Vec3::new(0.0, 65.0, 0.0)),
+        bullet_type:BulletType::Blue,
+        global_turret_rotation:turret_global.rotation()
+    });
 
     //reset the timer after firing
     turret.firing_timer.reset()

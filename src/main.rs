@@ -3,11 +3,13 @@ pub mod effects;
 pub mod player;
 pub mod resources;
 pub mod world;
+pub mod enemy;
 
 use bevy::prelude::*;
 use bevy_rapier2d::math::Vect;
 use bevy_rapier2d::plugin::{RapierConfiguration, RapierPhysicsPlugin};
 use bevy_rapier2d::prelude::{NoUserData, RapierDebugRenderPlugin};
+
 #[derive(Component)]
 pub(crate) struct PendingDespawn;
 fn main() -> AppExit {
@@ -21,6 +23,7 @@ fn main() -> AppExit {
         .add_plugins(bullet::BulletPlugin)
         .add_plugins(effects::EffectsPlugin)
         .add_plugins(world::WorldPlugin)
+        .add_plugins(enemy::EnemyPlugin)
         //after the systems that will attach despawn
         .add_systems(
             Update,
