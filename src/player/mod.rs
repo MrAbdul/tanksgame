@@ -33,7 +33,8 @@ impl Plugin for PlayerPlugin {
         app.add_systems(Startup, setup_player.after(resources::load_resources))
             .add_systems(Update, movement::move_sys)
             .add_systems(Update, movement::handle_rotations_by_mouse)
-            .add_systems(Update, shooting::fire_bullet);
+            .add_systems(Update, shooting::fire_bullet)
+            .add_systems(Update, movement::camera_follow);
     }
 }
 fn setup_player(mut commands: Commands, game_resources: Res<GameResources>) {

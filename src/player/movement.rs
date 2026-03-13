@@ -51,18 +51,18 @@ pub(crate) fn move_sys(
 
     let mut rotation_factor = 0.0;
     let mut movement_factor = 0.0;
-    if input.pressed(KeyCode::ArrowLeft) {
+    if input.pressed(KeyCode::ArrowLeft)||input.pressed(KeyCode::KeyA) {
         rotation_factor += 1.0;
     }
 
-    if input.pressed(KeyCode::ArrowRight) {
+    if input.pressed(KeyCode::ArrowRight) ||input.pressed(KeyCode::KeyD){
         rotation_factor -= 1.0;
     }
 
-    if input.pressed(KeyCode::ArrowUp) {
+    if input.pressed(KeyCode::ArrowUp) ||input.pressed(KeyCode::KeyW){
         movement_factor += 1.0;
     }
-    if input.pressed(KeyCode::ArrowDown) {
+    if input.pressed(KeyCode::ArrowDown) ||input.pressed(KeyCode::KeyS){
         movement_factor -= 1.0;
     }
     transform.rotate_z(rotation_factor * player.rotation_speed * time.delta_secs());
@@ -71,9 +71,15 @@ pub(crate) fn move_sys(
     let movement_direction = transform.rotation * Vec3::Y;
     //using physics to apply velocity
     velocity.linvel= movement_direction.xy()*(movement_factor * player.movement_speed);
-    // let movement_distance = movement_factor * player.movement_speed * time.delta_secs();
-    // // Create the change in translation using the new movement direction and distance
-    // let translation_delta = movement_direction * movement_distance;
-    // // Update the ship translation with our new translation delta
-    // transform.translation += translation_delta;
+
+}
+
+//CAMERA FOLLOW SYSTEM
+pub(crate) fn camera_follow(
+    player: Single<&Transform, With<player::Player>>,
+    mut camera: Single<&mut Transform, (With<Camera2d>, Without<player::Player>)>,
+){
+    let smoothed= camera.translation.xy().lerp(player.translation.xy(), 0.1);
+    camera.translation.x= smoothed.x;
+    camera.translation.y= smoothed.y;
 }
