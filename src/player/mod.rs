@@ -1,7 +1,6 @@
-use crate::{resources};
 use bevy::app::{App, Plugin};
 use bevy::math::{ Vec3};
-use bevy::prelude::{Commands, Component, IntoScheduleConfigs, Res, Sprite, Startup, Timer, Transform, Update};
+use bevy::prelude::{Commands, Component, Res, Sprite, Timer, Transform, Update};
 use bevy::sprite::Anchor;
 use bevy::time::TimerMode;
 use bevy_rapier2d::dynamics::Velocity;
@@ -30,14 +29,14 @@ pub(crate) struct PlayerPlugin;
 
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, setup_player.after(resources::load_resources))
+        app
             .add_systems(Update, movement::move_sys)
             .add_systems(Update, movement::handle_rotations_by_mouse)
             .add_systems(Update, shooting::fire_bullet)
             .add_systems(Update, movement::camera_follow);
     }
 }
-fn setup_player(mut commands: Commands, game_resources: Res<GameResources>) {
+pub(crate) fn spawn_player( commands: &mut Commands, game_resources: &Res<GameResources>,position:Vec3) {
     let mut sprite = Sprite::from_image(game_resources.game_atlas.clone());
     sprite.rect = Some(game_resources.tank_body_atlas_rect);
     sprite.flip_y = true;
@@ -53,7 +52,7 @@ fn setup_player(mut commands: Commands, game_resources: Res<GameResources>) {
             RigidBody::Dynamic,
             Collider::cuboid(37.5, 35.0), // half-extents of the sprite rect
             sprite,
-            Transform::from_translation(Vec3::new(0f32, 0f32, 1f32)),
+            Transform::from_translation(position),
         ))
         .id();
     let mut turret_sprite = Sprite::from_image(game_resources.game_atlas.clone());

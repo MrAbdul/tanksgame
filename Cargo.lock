@@ -4813,6 +4813,8 @@ dependencies = [
  "bevy",
  "bevy_rapier2d",
  "log",
+ "ron",
+ "serde",
  "tracing",
 ]
 

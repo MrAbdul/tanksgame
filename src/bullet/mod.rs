@@ -48,7 +48,7 @@ pub(crate) fn bullet_hit_wall(
     mut collision_events: MessageReader<CollisionEvent>,
     bullets: Query<Entity, (With<Bullet>, Without<PendingDespawn>)>,
     mut walls: Query<
-        (&mut crate::world::Wall, &mut crate::world::WallFlash),
+        (&mut crate::world::wall::Wall, &mut  crate::world::wall::WallFlash),
         Without<PendingDespawn>,
     >,
 ) {
