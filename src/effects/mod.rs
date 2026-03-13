@@ -3,9 +3,7 @@ use bevy::app::{App, Plugin};
 use bevy::asset::Handle;
 use bevy::image::Image;
 use bevy::math::Rect;
-use bevy::prelude::{
-    Bundle, Commands, Component, Entity,  Query, Res,  Sprite, Time, Timer, Transform, Update, Vec3,
-};
+use bevy::prelude::{Bundle, Commands, Component, Entity, Query, Res, Sprite, Time, Timer, Transform, Update, Vec3, Without};
 use bevy::time::TimerMode;
 use crate::resources::GameResources;
 
@@ -62,7 +60,7 @@ impl SmokeEffect {
 
 pub(crate) fn animate_smoke(
     mut commands: Commands,
-    mut query: Query<(Entity, &mut Sprite, &mut SmokeEffect)>,
+    mut query: Query<(Entity, &mut Sprite, &mut SmokeEffect),Without<PendingDespawn>>,
     game_resources: Res<GameResources>,
     time: Res<Time>,
 ) {
