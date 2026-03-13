@@ -1,4 +1,4 @@
-use crate::resources;
+use crate::{resources, PendingDespawn};
 use bevy::app::{App, Plugin};
 use bevy::asset::Handle;
 use bevy::image::Image;
@@ -94,7 +94,7 @@ pub(crate) fn animate_smoke(
 
             match sprite_rects.get(smoke.frame_index) {
                 None => {
-                    commands.entity(entity).despawn();
+                    commands.entity(entity).insert(PendingDespawn);
                 }
                 Some(val) => sprite.rect = Some(val.clone()),
             }

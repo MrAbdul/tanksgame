@@ -21,7 +21,7 @@ pub(crate) fn fire_bullet(
     turret.firing_timer.tick(time.delta());
     //the timer ticker has to be above here to accumulate the ticks
 
-    if !mouse.just_pressed(MouseButton::Left) {
+    if !mouse.pressed(MouseButton::Left) {
         return;
     }
     //exit the system if not finished

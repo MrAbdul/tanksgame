@@ -8,7 +8,8 @@ use bevy::prelude::*;
 use bevy_rapier2d::math::Vect;
 use bevy_rapier2d::plugin::{RapierConfiguration, RapierPhysicsPlugin};
 use bevy_rapier2d::prelude::{NoUserData, RapierDebugRenderPlugin};
-
+#[derive(Component)]
+pub(crate) struct PendingDespawn;
 fn main() -> AppExit {
     App::new()
         .add_plugins(DefaultPlugins)
@@ -20,6 +21,7 @@ fn main() -> AppExit {
         .add_plugins(bullet::BulletPlugin)
         .add_plugins(effects::EffectsPlugin)
         .add_plugins(world::WorldPlugin)
+        .add_systems(Update,cleanup)
 
         .run()
 }
@@ -32,4 +34,9 @@ fn startup(mut commands: Commands) {
 fn setup_physics(mut config: Query<&mut RapierConfiguration>) {
     let mut config = config.single_mut().unwrap();
     config.gravity = Vect::ZERO;
+}
+fn cleanup(mut commands: Commands,query: Query<Entity, With<PendingDespawn>>) {
+    for entity in query.iter() {
+        commands.entity(entity).despawn();
+    }
 }

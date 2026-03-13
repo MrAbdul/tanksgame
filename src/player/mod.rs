@@ -77,7 +77,7 @@ fn setup_player(mut commands: Commands, game_resources: Res<GameResources>) {
         .spawn((
             Turret {
                 rotation_speed: TURRET_ROTATION_SPEED,
-                firing_timer: Timer::from_seconds(1.0,TimerMode::Once)
+                firing_timer: Timer::from_seconds(0.10,TimerMode::Once)
             },
             Anchor::BOTTOM_CENTER,
             turret_sprite,
