@@ -1,9 +1,7 @@
 use bevy::asset::{AssetLoader, LoadContext};
 use bevy::asset::io::Reader;
 use bevy::prelude::TypePath;
-use bevy::tasks::ConditionalSendFuture;
 use crate::resources;
-use crate::world::map_loader::MapAsset;
 
 #[derive(Default,TypePath)]
 pub(crate) struct GameConfigAssetLoader;

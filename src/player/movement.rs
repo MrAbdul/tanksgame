@@ -1,4 +1,5 @@
 use crate::player;
+use crate::resources::GameConfig;
 use bevy::camera::{Camera, Camera2d};
 use bevy::input::ButtonInput;
 use bevy::math::{EulerRot, Quat, Vec3, Vec3Swizzles};
@@ -6,9 +7,8 @@ use bevy::prelude::{
     GlobalTransform, KeyCode, Res, Single, Time, Transform, Window, With, Without,
 };
 use bevy::window::PrimaryWindow;
-use std::f32::consts::FRAC_PI_2;
 use bevy_rapier2d::prelude::Velocity;
-use crate::resources::GameConfig;
+use std::f32::consts::FRAC_PI_2;
 
 pub(crate) fn handle_rotations_by_mouse(
     mut turret: Single<
@@ -19,8 +19,11 @@ pub(crate) fn handle_rotations_by_mouse(
     camera_query: Single<(&Camera, &GlobalTransform), With<Camera2d>>,
     window: Single<&Window, With<PrimaryWindow>>,
     time: Res<Time>,
-    game_config: Res<GameConfig>,
+    game_config: Option<Res<GameConfig>>,
 ) {
+    let Some(game_config) = game_config else {
+        return;
+    };
     let (camera, camera_transform) = *camera_query;
     let (ref mut transform, turret_cfg) = *turret;
 
@@ -32,7 +35,6 @@ pub(crate) fn handle_rotations_by_mouse(
 
         //think of it as a type of radius, i don't want the turret to rotate while the cursor is inside the tank.
         if to_cursor.length_squared() < game_config.player_rotation_lock_radius {
-
             return;
         }
 
@@ -51,22 +53,22 @@ pub(crate) fn move_sys(
     time: Res<Time>,
     input: Res<ButtonInput<KeyCode>>,
 ) {
-    let (ref mut velocity, ref mut transform , player) = *player;
+    let (ref mut velocity, ref mut transform, player) = *player;
 
     let mut rotation_factor = 0.0;
     let mut movement_factor = 0.0;
-    if input.pressed(KeyCode::ArrowLeft)||input.pressed(KeyCode::KeyA) {
+    if input.pressed(KeyCode::ArrowLeft) || input.pressed(KeyCode::KeyA) {
         rotation_factor += 1.0;
     }
 
-    if input.pressed(KeyCode::ArrowRight) ||input.pressed(KeyCode::KeyD){
+    if input.pressed(KeyCode::ArrowRight) || input.pressed(KeyCode::KeyD) {
         rotation_factor -= 1.0;
     }
 
-    if input.pressed(KeyCode::ArrowUp) ||input.pressed(KeyCode::KeyW){
+    if input.pressed(KeyCode::ArrowUp) || input.pressed(KeyCode::KeyW) {
         movement_factor += 1.0;
     }
-    if input.pressed(KeyCode::ArrowDown) ||input.pressed(KeyCode::KeyS){
+    if input.pressed(KeyCode::ArrowDown) || input.pressed(KeyCode::KeyS) {
         movement_factor -= 1.0;
     }
     transform.rotate_z(rotation_factor * player.rotation_speed * time.delta_secs());
@@ -74,19 +76,23 @@ pub(crate) fn move_sys(
     // vector
     let movement_direction = transform.rotation * Vec3::Y;
     //using physics to apply velocity
-    velocity.linvel= movement_direction.xy()*(movement_factor * player.movement_speed);
-
+    velocity.linvel = movement_direction.xy() * (movement_factor * player.movement_speed);
 }
 
 //CAMERA FOLLOW SYSTEM
 pub(crate) fn camera_follow(
     player: Single<&Transform, With<player::Player>>,
     mut camera: Single<&mut Transform, (With<Camera2d>, Without<player::Player>)>,
-    game_config: Option<Res<GameConfig>>
-){
-    let Some(game_config)= game_config else{return;};
+    game_config: Option<Res<GameConfig>>,
+) {
+    let Some(game_config) = game_config else {
+        return;
+    };
 
-    let smoothed= camera.translation.xy().lerp(player.translation.xy(), game_config.camera_smoothing_factor);
-    camera.translation.x= smoothed.x;
-    camera.translation.y= smoothed.y;
+    let smoothed = camera
+        .translation
+        .xy()
+        .lerp(player.translation.xy(), game_config.camera_smoothing_factor);
+    camera.translation.x = smoothed.x;
+    camera.translation.y = smoothed.y;
 }
