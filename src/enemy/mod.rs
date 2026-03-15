@@ -1,11 +1,12 @@
 use bevy::app::App;
 use bevy::math::{Vec2, Vec3};
-use bevy::prelude::{Commands, Component, Plugin, Res, Sprite, TimerMode, Transform, Update};
+use bevy::prelude::{in_state, Commands, Component, IntoScheduleConfigs, Plugin, Res, Sprite, TimerMode, Transform, Update};
 use bevy::sprite::Anchor;
 use bevy::time::Timer;
 use bevy_rapier2d::dynamics::{LockedAxes, RigidBody, Velocity};
 use bevy_rapier2d::geometry::Collider;
 use crate::{bullet, health};
+use crate::game_state::GameState;
 use crate::resources::{GameConfig, GameResources};
 
 pub mod ai;
@@ -30,8 +31,8 @@ pub(crate) struct EnemyPlugin;
 
 impl Plugin for EnemyPlugin{
     fn build(&self, app: &mut App) {
-        app.add_systems(Update,ai::rotate_turret_towards_player)
-            .add_systems(Update,ai::move_towards_player);
+        app.add_systems(Update,ai::rotate_turret_towards_player.run_if(in_state(GameState::Playing)))
+            .add_systems(Update,ai::move_towards_player.run_if(in_state(GameState::Playing)));
     }
 }
 

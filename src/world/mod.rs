@@ -7,13 +7,15 @@ use bevy::prelude::*;
 use bevy::sprite_render::Material2dPlugin;
 use map_loader::{MapAsset, MapAssetLoader};
 use wall::{WallMaterial, spawn_wall, sync_wall_materials, WALL_SIZE};
+use crate::game_state::GameState;
 use crate::world::tiles::TileType;
 
 const TILE_SIZE: Vec2 = WALL_SIZE;
 
 #[derive(Resource)]
 pub(crate) struct MapHandle(pub(crate) Handle<MapAsset>);
-
+#[derive(Resource)]
+pub(crate) struct MapSpawned;
 pub(crate) struct WorldPlugin;
 
 impl Plugin for WorldPlugin {
@@ -51,12 +53,14 @@ fn spawn_map_when_ready(
     asset_server: Res<AssetServer>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<WallMaterial>>,
-    mut already_spawned: Local<bool>,
     game_config: Option<Res<GameConfig>>,
+    mut next_state: ResMut<NextState<GameState>>,
+    map_spawned: Option<Res<MapSpawned>>,
+    current_state: Res<State<GameState>>,
+
+
 ) {
-    if *already_spawned {
-        return;
-    }
+    if map_spawned.is_some() { return; }
     // this is the let-else pattern. means:
     //try to desctrutre this, and if it doesnt match run the else block. the else block must diverge the function, it cant let it continue
     //meaning it must return, break, continue or panic. because continuing would lead to undefined behavioud as Some(map) is not actually descrtured
@@ -101,6 +105,10 @@ fn spawn_map_when_ready(
         }
     }
 
-    *already_spawned = true;
+    commands.insert_resource(MapSpawned);
+    if *current_state.get() == GameState::Loading {
+        next_state.set(GameState::MainMenu);
+    }
+
 }
 

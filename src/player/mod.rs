@@ -1,12 +1,13 @@
 use bevy::app::{App, Plugin};
 use bevy::math::{ Vec3};
-use bevy::prelude::{Commands, Component, Res, Sprite, Timer, Transform, Update};
+use bevy::prelude::{in_state, Commands, Component, IntoScheduleConfigs, Res, Sprite, Timer, Transform, Update};
 use bevy::sprite::Anchor;
 use bevy::time::TimerMode;
 use bevy_rapier2d::dynamics::Velocity;
 use bevy_rapier2d::geometry::Collider;
 use bevy_rapier2d::prelude::{LockedAxes, RigidBody};
 use crate::{bullet, health};
+use crate::game_state::GameState;
 use crate::resources::{GameConfig, GameResources};
 
 pub mod movement;
@@ -28,10 +29,10 @@ pub(crate) struct PlayerPlugin;
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app
-            .add_systems(Update, movement::move_sys)
-            .add_systems(Update, movement::handle_rotations_by_mouse)
-            .add_systems(Update, shooting::fire_bullet)
-            .add_systems(Update, movement::camera_follow);
+            .add_systems(Update, movement::move_sys.run_if(in_state(GameState::Playing)))
+            .add_systems(Update, movement::handle_rotations_by_mouse.run_if(in_state(GameState::Playing)))
+            .add_systems(Update, shooting::fire_bullet.run_if(in_state(GameState::Playing)))
+            .add_systems(Update, movement::camera_follow.run_if(in_state(GameState::Playing)));
     }
 }
 pub(crate) fn spawn_player( commands: &mut Commands, game_resources: &Res<GameResources>,position:Vec3,game_config:&Res<GameConfig> ) {

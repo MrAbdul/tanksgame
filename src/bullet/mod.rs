@@ -4,6 +4,7 @@ use crate::{audio, bullet, effects, enemy, health, player, resources, world, Pen
 use bevy::prelude::*;
 use bevy::time::Timer;
 use bevy_rapier2d::prelude::*;
+use crate::game_state::GameState;
 
 #[derive(Component)]
 pub(crate) struct Bullet {
@@ -31,9 +32,9 @@ impl Plugin for BulletPlugin {
     fn build(&self, app: &mut App) {
         app
             // .add_systems(Update, move_bullets)
-            .add_systems(Update, despawn_bullets)
+            .add_systems(Update, despawn_bullets.run_if(in_state(GameState::Playing)))
             .add_observer(on_fire)
-            .add_systems(Update, proccess_bullet_collisions.after(despawn_bullets));
+            .add_systems(Update, proccess_bullet_collisions.after(despawn_bullets).run_if(in_state(GameState::Playing)));
     }
 }
 pub(crate) enum EntityType {

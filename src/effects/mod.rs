@@ -3,15 +3,16 @@ use bevy::app::{App, Plugin};
 use bevy::asset::Handle;
 use bevy::image::Image;
 use bevy::math::Rect;
-use bevy::prelude::{Bundle, Commands, Component, Entity, Query, Res, Sprite, Time, Timer, Transform, Update, Vec3, Without};
+use bevy::prelude::{in_state, Bundle, Commands, Component, Entity, IntoScheduleConfigs, Query, Res, Sprite, Time, Timer, Transform, Update, Vec3, Without};
 use bevy::time::TimerMode;
+use crate::game_state::GameState;
 use crate::resources::GameResources;
 
 pub(crate) struct EffectsPlugin;
 
 impl Plugin for EffectsPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, animate_smoke);
+        app.add_systems(Update, animate_smoke.run_if(in_state(GameState::Playing)));
     }
 }
 

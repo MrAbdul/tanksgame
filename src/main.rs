@@ -7,11 +7,13 @@ pub mod enemy;
 pub mod ui;
 pub mod audio;
 pub mod health;
+pub mod game_state;
 
 use bevy::prelude::*;
 use bevy_rapier2d::math::Vect;
 use bevy_rapier2d::plugin::{RapierConfiguration, RapierPhysicsPlugin};
 use bevy_rapier2d::prelude::{NoUserData, RapierDebugRenderPlugin};
+use crate::game_state::GameState;
 
 #[derive(Component)]
 pub(crate) struct PendingDespawn;
@@ -30,11 +32,12 @@ fn main() -> AppExit {
         .add_plugins(ui::UiPlugin)
         .add_plugins(audio::GameAudioPlugin)
         //after the systems that will attach despawn
+        .add_plugins(game_state::GameStatePlugin)
         .add_systems(
             Update,
             cleanup
                 .after(bullet::proccess_bullet_collisions)
-                .after(effects::animate_smoke),
+                .after(effects::animate_smoke).run_if(in_state(GameState::Playing)),
         )
         .run()
 }

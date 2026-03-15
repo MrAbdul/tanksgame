@@ -114,19 +114,16 @@ pub(crate) fn move_towards_player(
         }
 
         // stuck detection
-        println!("{}",enemy_pos.distance(player_pos));
 
         if velocity.linvel.length() < 20.0 ||!(enemy_pos.distance(player_pos) < (enemy.previous_distance_to_player - enemy_pos.distance(player_pos)) )  {
 
             enemy.stuck_timer += time.delta_secs();
-            println!("stuck detecting adding to stuck timer{}",enemy.stuck_timer);
 
         } else {
             enemy.stuck_timer = 0.0;
 
         }
         if enemy.stuck_timer > 0.5 {
-            println!("stuck detecting flipping direction {}",enemy.stuck_timer);
             steer_dir = Vec2::new(-desired_dir.y, desired_dir.x);
             enemy.stuck_timer = 0.0;
         }
