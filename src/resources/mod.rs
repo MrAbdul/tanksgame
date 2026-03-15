@@ -46,6 +46,8 @@ pub(crate) struct GameConfig {
     pub enemy_raycast_distance: f32,
     pub enemy_body_rotation_speed: f32,
     pub enemy_stop_distance: f32,
+    pub enemy_tank_health:f32,
+    pub player_tank_health:f32,
 }
 #[derive(Resource)]
 pub(crate) struct GameConfigHandle(pub(crate) Handle<GameConfig>);

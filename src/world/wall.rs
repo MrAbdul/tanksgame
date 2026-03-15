@@ -4,15 +4,14 @@ use bevy::render::render_resource::{AsBindGroup, ShaderType};
 use bevy::shader::ShaderRef;
 use bevy::sprite_render::{AlphaMode2d, Material2d};
 use bevy_rapier2d::prelude::*;
+use crate::{bullet, health};
 
 const WALL_MAX_HEALTH: f32 = 100.0;
 pub(crate) const WALL_SIZE: Vec2 = Vec2::new(66.0, 44.0);
 const WALL_ATLAS_RECT_PX: Vec4 = Vec4::new(730.0, 410.0, 66.0, 44.0);
 
 #[derive(Component)]
-pub(crate) struct Wall {
-    pub(crate) health: f32,
-}
+pub(crate) struct Wall ();
 
 #[derive(Component)]
 pub(crate) struct WallFlash {
@@ -72,7 +71,15 @@ pub(crate) fn spawn_wall(
     });
 
     commands.spawn((
-        Wall { health: WALL_MAX_HEALTH },
+        health::HealthBundle{
+            health:health::Health{
+                health: WALL_MAX_HEALTH
+            },
+            damaged_bullets:health::TakesDamageFrom{
+                damaging_bullets:vec![bullet::BulletType::Red,bullet::BulletType::Blue]
+            }
+        },
+        Wall() ,
         WallFlash { timer: Timer::from_seconds(0.1, TimerMode::Once) },
         Mesh2d(mesh),
         MeshMaterial2d(material),
@@ -86,9 +93,9 @@ pub(crate) fn spawn_wall(
 pub(crate) fn sync_wall_materials(
     time: Res<Time>,
     mut materials: ResMut<Assets<WallMaterial>>,
-    mut walls: Query<(&Wall, &mut WallFlash, &MeshMaterial2d<WallMaterial>)>,
+    mut walls: Query<(&health::Health, &mut WallFlash, &MeshMaterial2d<WallMaterial>)>,
 ) {
-    for (wall, mut flash, material_handle) in &mut walls {
+    for (health, mut flash, material_handle) in &mut walls {
         flash.timer.tick(time.delta());
         let flash_amount = if flash.timer.is_finished() {
             0.0
@@ -96,7 +103,7 @@ pub(crate) fn sync_wall_materials(
             let duration = flash.timer.duration().as_secs_f32().max(0.0001);
             1.0 - (flash.timer.elapsed_secs() / duration)
         };
-        let health_ratio = (wall.health / WALL_MAX_HEALTH).clamp(0.0, 1.0);
+        let health_ratio = ( health.health/ WALL_MAX_HEALTH).clamp(0.0, 1.0);
         if let Some(mat) = materials.get_mut(&material_handle.0) {
             mat.params.health_flash = Vec4::new(health_ratio, flash_amount, 0.0, 0.0);
         }

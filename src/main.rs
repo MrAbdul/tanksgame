@@ -6,6 +6,7 @@ pub mod world;
 pub mod enemy;
 pub mod ui;
 pub mod audio;
+pub mod health;
 
 use bevy::prelude::*;
 use bevy_rapier2d::math::Vect;
@@ -32,7 +33,7 @@ fn main() -> AppExit {
         .add_systems(
             Update,
             cleanup
-                .after(bullet::bullet_hit_wall)
+                .after(bullet::proccess_bullet_collisions)
                 .after(effects::animate_smoke),
         )
         .run()

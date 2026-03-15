@@ -5,6 +5,7 @@ use bevy::sprite::Anchor;
 use bevy::time::Timer;
 use bevy_rapier2d::dynamics::{LockedAxes, RigidBody, Velocity};
 use bevy_rapier2d::geometry::Collider;
+use crate::{bullet, health};
 use crate::resources::{GameConfig, GameResources};
 
 pub mod ai;
@@ -45,6 +46,14 @@ pub(crate) fn spawn_enemy(commands: &mut Commands, game_resources: &Res<GameReso
                 movement_speed: game_config.enemy_tank_movement_speed,
                 stuck_timer:0.0,
                 previous_distance_to_player:0.0,
+            },
+            health::HealthBundle{
+                health:health::Health{
+                    health: game_config.enemy_tank_health
+                },
+                damaged_bullets:health::TakesDamageFrom{
+                    damaging_bullets:vec![bullet::BulletType::Blue]
+                }
             },
             LockedAxes::ROTATION_LOCKED,
             Velocity::default(),

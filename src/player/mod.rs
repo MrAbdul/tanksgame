@@ -6,6 +6,7 @@ use bevy::time::TimerMode;
 use bevy_rapier2d::dynamics::Velocity;
 use bevy_rapier2d::geometry::Collider;
 use bevy_rapier2d::prelude::{LockedAxes, RigidBody};
+use crate::{bullet, health};
 use crate::resources::{GameConfig, GameResources};
 
 pub mod movement;
@@ -43,6 +44,14 @@ pub(crate) fn spawn_player( commands: &mut Commands, game_resources: &Res<GameRe
             Player {
                 rotation_speed: game_config.player_tank_rotation_speed,
                 movement_speed: game_config.player_tank_movement_speed,
+            },
+            health::HealthBundle{
+                health:health::Health{
+                    health: game_config.player_tank_health
+                },
+                damaged_bullets:health::TakesDamageFrom{
+                    damaging_bullets:vec![bullet::BulletType::Red]
+                }
             },
             LockedAxes::ROTATION_LOCKED,
             Velocity::default(),

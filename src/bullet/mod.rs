@@ -1,6 +1,6 @@
 use crate::player::Player;
 use crate::resources::GameResources;
-use crate::{audio, bullet, effects, resources, PendingDespawn};
+use crate::{audio, bullet, effects, enemy, health, player, resources, world, PendingDespawn};
 use bevy::prelude::*;
 use bevy::time::Timer;
 use bevy_rapier2d::prelude::*;
@@ -8,6 +8,7 @@ use bevy_rapier2d::prelude::*;
 #[derive(Component)]
 pub(crate) struct Bullet {
     pub(crate) lifetime: Timer,
+    bullet_type: BulletType,
 }
 
 #[derive(Event)]
@@ -17,6 +18,8 @@ pub(crate) struct FireEvent {
     pub(crate) bullet_type: BulletType,
     pub(crate) global_turret_rotation: Quat,
 }
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 
 pub(crate) enum BulletType {
     Blue,
@@ -30,10 +33,15 @@ impl Plugin for BulletPlugin {
             // .add_systems(Update, move_bullets)
             .add_systems(Update, despawn_bullets)
             .add_observer(on_fire)
-            .add_systems(Update, bullet_hit_wall.after(despawn_bullets));
+            .add_systems(Update, proccess_bullet_collisions.after(despawn_bullets));
     }
 }
-
+pub(crate) enum EntityType {
+    Player(Entity),
+    Enemy(Entity),
+    Wall(Entity),
+    Bullet(Entity),
+}
 //an event observer
 fn on_fire(
     fire: On<FireEvent>,
@@ -42,7 +50,6 @@ fn on_fire(
     game_config: Option<Res<resources::GameConfig>>,
     audio_resource: Option<Res<audio::GameAudio>>,
     player_transform: Query<&Transform, With<Player>>,
-
 ) {
     let Some(game_config) = game_config else {
         return;
@@ -66,6 +73,10 @@ fn on_fire(
         sprite,
         bullet::Bullet {
             lifetime: Timer::from_seconds(1.5, TimerMode::Once),
+            bullet_type: match fire.bullet_type {
+                BulletType::Blue => BulletType::Blue,
+                BulletType::Red => BulletType::Red,
+            },
         },
         transform,
         Collider::cuboid(18.0, 18.0), // half-extents of the sprite rect
@@ -84,15 +95,19 @@ fn on_fire(
         Ccd::enabled(),
     ));
 
-    audio::play_one_shot(&mut commands, audio_resource.player_fire.clone(), match fire.bullet_type{
-        BulletType::Blue => 0.7,
-        BulletType::Red => {
-            let distance =fire.muzzle_world_pos.distance(player_transform.translation);
-            //modulate the value
-            let mapped = 1.0-(((distance - 50.0) / (1000.0 - 50.0)).clamp(0.0, 1.0));
-            mapped
-        }
-    });
+    audio::play_one_shot(
+        &mut commands,
+        audio_resource.player_fire.clone(),
+        match fire.bullet_type {
+            BulletType::Blue => 0.7,
+            BulletType::Red => {
+                let distance = fire.muzzle_world_pos.distance(player_transform.translation);
+                //modulate the value
+                let mapped = 1.0 - (((distance - 50.0) / (1000.0 - 50.0)).clamp(0.0, 1.0));
+                mapped
+            }
+        },
+    );
 
     commands.spawn(effects::SmokeEffect::new(
         effects::SmokeType::Grey,
@@ -131,17 +146,36 @@ fn despawn_bullets(
         }
     }
 }
-pub(crate) fn bullet_hit_wall(
+pub(crate) fn proccess_bullet_collisions(
     mut commands: Commands,
     mut collision_events: MessageReader<CollisionEvent>,
-    bullets: Query<Entity, (With<Bullet>, Without<PendingDespawn>)>,
+    bullets: Query<(Entity, &Bullet), (With<Bullet>, Without<PendingDespawn>)>,
+    mut enemies: Query<
+        (&mut health::Health, &health::TakesDamageFrom),
+        (Without<PendingDespawn>,
+         With<enemy::Enemy>,
+         Without<player::Player>,
+         Without<world::wall::Wall>,),
+    >,
+    mut player: Query<
+        (&mut health::Health, &health::TakesDamageFrom),
+        (Without<PendingDespawn>,
+         With<player::Player>,
+         Without<enemy::Enemy>,
+         Without<world::wall::Wall>,),
+    >,
     mut walls: Query<
         (
-            &mut crate::world::wall::Wall,
-            &mut crate::world::wall::WallFlash,
+            &mut health::Health,
+            &health::TakesDamageFrom,
+            &mut world::wall::WallFlash,
         ),
-        Without<PendingDespawn>,
+        (Without<PendingDespawn>,
+         With<world::wall::Wall>,
+         Without<enemy::Enemy>,
+         Without<player::Player>,),
     >,
+
     game_config: Option<Res<resources::GameConfig>>,
     audio_resource: Option<Res<audio::GameAudio>>,
 ) {
@@ -156,28 +190,104 @@ pub(crate) fn bullet_hit_wall(
         let CollisionEvent::Started(e1, e2, _) = event else {
             continue;
         };
+
         //extract the entity so we don't have to do duplicate logic, if e1 is in the bullets then its a bullet lol
         //if nighter entity is in bullets then its not a damn bullet, so we continue the loop
-        let (bullet_entity, wall_entity) = if bullets.contains(*e1) {
-            (*e1, *e2)
-        } else if bullets.contains(*e2) {
-            (*e2, *e1)
-        } else {
-            continue;
-        };
 
-        //extracting the wall and the flash componeants/entity, if  its a wall (variant ok) else continue
-        let Ok((mut wall, mut flash)) = walls.get_mut(wall_entity) else {
+        let (bullet, hittee_entity_type) = if bullets.contains(*e1) && walls.contains(*e2) {
+            (*e1, EntityType::Wall(*e2))
+        } else if bullets.contains(*e2) && walls.contains(*e1) {
+            (*e2, EntityType::Wall(*e1))
+        }
+        else if bullets.contains(*e1)&&enemies.contains(*e2) {
+            (*e1,  EntityType::Enemy(*e2))
+        }
+        else if bullets.contains(*e2)&&enemies.contains(*e1) {
+            (*e2,  EntityType::Enemy(*e1))
+        }
+        else if bullets.contains(*e1)&&player.contains(*e2) {
+            (*e1,  EntityType::Player(*e2))
+        }
+        else if bullets.contains(*e2)&&player.contains(*e1) {
+            (*e2,  EntityType::Player(*e1))
+        }
+        else {
             continue;
         };
-        //float arithmitic hijenks
-        audio::play_one_shot(&mut commands, audio_resource.wall_hit.clone(), 0.8);
-        wall.health = (wall.health - game_config.bullet_wall_damage_amount).max(0.0);
-        flash.timer = Timer::from_seconds(game_config.wall_hit_flash_duration, TimerMode::Once);
-        //que the despawon of the bullet
-        commands.entity(bullet_entity).insert(PendingDespawn);
-        if wall.health == 0.0 {
-            commands.entity(wall_entity).insert(PendingDespawn);
+        let Ok(bullet) = bullets.get(bullet) else {
+            continue;
+        };
+        let (bullet_entity, bullet) = bullet;
+        match hittee_entity_type {
+            EntityType::Player(e) => {
+                let Ok((mut health, takes_damage_from)) = player.get_mut(e) else {
+                    continue;
+                };
+
+                let takes_damage: bool = takes_damage_from
+                    .damaging_bullets
+                    .contains(&bullet.bullet_type);
+                if takes_damage {
+                    audio::play_one_shot(&mut commands, audio_resource.wall_hit.clone(), 0.8);
+                    health.health = (health.health - 25.0).max(0.0);
+                    if health.health == 0.0 {
+                        commands.entity(e).insert(PendingDespawn);
+                    }
+                    commands.entity(bullet_entity).insert(PendingDespawn);
+                }
+            }
+            EntityType::Enemy(e) => {
+                let Ok((mut health, takes_damage_from)) = enemies.get_mut(e) else {
+                    continue;
+                };
+
+                let takes_damage: bool = takes_damage_from
+                    .damaging_bullets
+                    .contains(&bullet.bullet_type);
+                if takes_damage {
+                    audio::play_one_shot(&mut commands, audio_resource.wall_hit.clone(), 0.8);
+                    health.health = (health.health - 25.0).max(0.0);
+                    if health.health == 0.0 {
+                        commands.entity(e).insert(PendingDespawn);
+                    }
+                    commands.entity(bullet_entity).insert(PendingDespawn);
+                }
+            }
+            EntityType::Wall(e) => {
+                let Ok((mut health, takes_damage_from, mut wall_flash)) = walls.get_mut(e) else {
+                    continue;
+                };
+
+                let takes_damage: bool = takes_damage_from
+                    .damaging_bullets
+                    .contains(&bullet.bullet_type);
+                if takes_damage {
+                    audio::play_one_shot(&mut commands, audio_resource.wall_hit.clone(), 0.8);
+                    health.health =
+                        (health.health - game_config.bullet_wall_damage_amount).max(0.0);
+                    wall_flash.timer =
+                        Timer::from_seconds(game_config.wall_hit_flash_duration, TimerMode::Once);
+                    if health.health == 0.0 {
+                        commands.entity(e).insert(PendingDespawn);
+                    }
+                    commands.entity(bullet_entity).insert(PendingDespawn);
+                }
+            }
+            _ => (),
         }
+
+        // //extracting the wall and the flash componeants/entity, if  its a wall (variant ok) else continue
+        // let Ok((mut wall, mut flash)) = walls.get_mut(wall_entity) else {
+        //     continue;
+        // };
+        // //float arithmitic hijenks
+        // audio::play_one_shot(&mut commands, audio_resource.wall_hit.clone(), 0.8);
+        // wall.health = (wall.health - game_config.bullet_wall_damage_amount).max(0.0);
+        // flash.timer = Timer::from_seconds(game_config.wall_hit_flash_duration, TimerMode::Once);
+        // //que the despawon of the bullet
+        // commands.entity(bullet_entity).insert(PendingDespawn);
+        // if wall.health == 0.0 {
+        //     commands.entity(wall_entity).insert(PendingDespawn);
+        // }
     }
 }
